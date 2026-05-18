@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memória Geometria Molecular</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --sky-blue: #4FC3F7;
+            --bright-yellow: #FFD54F;
+            --pink: #FF80AB;
+            --light-green: #AED581;
+            --neon-blue: #00E5FF;
+            --neon-pink: #FF4081;
+            --gold: #FFD700;
+            --bg: #F0F6FF;
+            --fg: #1A237E;
+            --muted: #78909C;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: var(--fg)
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 15% 20%, rgba(79, 195, 247, .12) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 80%, rgba(255, 128, 171, .12) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(174, 213, 129, .08) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 30%, rgba(255, 213, 79, .1) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            opacity: .035;
+            background-image: radial-gradient(circle, var(--fg) 1px, transparent 1px);
+            background-size: 28px 28px;
+            pointer-events: none;
+            z-index: 0
+        }
+
+        .bg-mol {
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+            opacity: .18
+        }
+
+        @keyframes floatA {
+            0% {
+                transform: translateY(105vh) rotate(0) scale(.8);
+                opacity: 0
+            }
+
+            8% {
+                opacity: .18
+            }
+
+            92% {
+                opacity: .18
+            }
+
+            100% {
+                transform: translateY(-80px) rotate(360deg) scale(1);
+                opacity: 0
+            }
+        }
+
+        @keyframes floatB {
+            0% {
+                transform: translateY(105vh) rotate(0) scale(1);
+                opacity: 0
+            }
+
+            8% {
+                opacity: .15
+            }
+
+            92% {
+                opacity: .15
+            }
+
+            100% {
+                transform: translateY(-80px) rotate(-360deg) scale(.8);
+                opacity: 0
+            }
+        }
+
+        .atom-spinner {
+            width: 160px;
+            height: 160px;
+            position: relative;
+            margin: 0 auto
+        }
+
+        .atom-nucleus {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--pink), var(--neon-pink));
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 30px rgba(255, 64, 129, .4), 0 0 60px rgba(255, 64, 129, .2)
+        }
+
+        .electron-orbit {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            border: 2px solid rgba(79, 195, 247, .25);
+            border-radius: 50%;
+            transform-origin: center
+        }
+
+        .electron-orbit:nth-child(2) {
+            width: 130px;
+            height: 130px;
+            margin: -65px 0 0 -65px;
+            animation: spinOrbit 3s linear infinite
+        }
+
+        .electron-orbit:nth-child(3) {
+            width: 130px;
+            height: 130px;
+            margin: -65px 0 0 -65px;
+            transform: rotateY(65deg);
+            animation: spinOrbit 4s linear infinite reverse
+        }
+
+        .electron-orbit:nth-child(4) {
+            width: 130px;
+            height: 130px;
+            margin: -65px 0 0 -65px;
+            transform: rotateX(65deg);
+            animation: spinOrbit 5s linear infinite
+        }
+
+        .electron {
+            width: 12px;
+            height: 12px;
+            background: var(--sky-blue);
+            border-radius: 50%;
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            margin-left: -6px;
+            box-shadow: 0 0 12px rgba(79, 195, 247, .8)
+        }
+
+        @keyframes spinOrbit {
+            from {
+                transform: rotateZ(0)
+            }
+
+            to {
+                transform: rotateZ(360deg)
+            }
+        }
+
+        .card-container {
+            perspective: 1000px;
+            cursor: pointer;
+            transition: transform .2s
+        }
+
+        .card-container:hover:not(.flipped):not(.matched) {
+            transform: translateY(-6px)
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform .55s cubic-bezier(.4, 0, .2, 1);
+            transform-style: preserve-3d
+        }
+
+        .card-container.flipped .card-inner {
+            transform: rotateY(180deg)
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 18px;
+            overflow: hidden
+        }
+
+        .card-back-face {
+            background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 50%, #0288D1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid rgba(255, 255, 255, .5);
+            box-shadow: 0 6px 24px rgba(2, 136, 209, .25)
+        }
+
+        .card-front-face {
+            transform: rotateY(180deg);
+            background: #fff;
+            border: 3px solid rgba(255, 255, 255, .8);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, .08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center
+        }
+
+        .card-container.matched .card-front-face {
+            border-color: var(--gold);
+            box-shadow: 0 0 24px rgba(255, 215, 0, .35), 0 6px 24px rgba(0, 0, 0, .08)
+        }
+
+        .card-container.matched .card-inner {
+            animation: matchPop .55s ease
+        }
+
+        @keyframes matchPop {
+
+            0%,
+            100% {
+                transform: rotateY(180deg) scale(1)
+            }
+
+            40% {
+                transform: rotateY(180deg) scale(1.1)
+            }
+        }
+
+        .card-container.matched .card-front-face {
+            animation: goldPulse 2.5s ease-in-out infinite
+        }
+
+        @keyframes goldPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 18px rgba(255, 215, 0, .3), 0 6px 24px rgba(0, 0, 0, .08)
+            }
+
+            50% {
+                box-shadow: 0 0 36px rgba(255, 215, 0, .6), 0 6px 24px rgba(0, 0, 0, .08)
+            }
+        }
+
+        @keyframes mismatchShake {
+
+            0%,
+            100% {
+                transform: rotateY(180deg) translateX(0)
+            }
+
+            20%,
+            60% {
+                transform: rotateY(180deg) translateX(-8px)
+            }
+
+            40%,
+            80% {
+                transform: rotateY(180deg) translateX(8px)
+            }
+        }
+
+        .card-container.mismatch .card-inner {
+            animation: mismatchShake .45s ease
+        }
+
+        .card-grid {
+            display: grid;
+            gap: 14px;
+            justify-content: center;
+            align-content: center;
+            padding: 16px;
+            margin: 0 auto;
+            width: 100%
+        }
+
+        .card-grid.simple {
+            grid-template-columns: repeat(4, 1fr);
+            max-width: 760px
+        }
+
+        .card-grid.medium {
+            grid-template-columns: repeat(4, 1fr);
+            max-width: 760px
+        }
+
+        .card-grid.difficult {
+            grid-template-columns: repeat(6, 1fr);
+            max-width: 1140px
+        }
+
+        .card-container {
+            aspect-ratio: .78;
+            min-height: 0
+        }
+
+        @media(max-width:900px) {
+            .card-grid.difficult {
+                grid-template-columns: repeat(4, 1fr);
+                max-width: 640px
+            }
+        }
+
+        @media(max-width:640px) {
+
+            .card-grid.simple,
+            .card-grid.medium,
+            .card-grid.difficult {
+                max-width: 99vw
+            }
+
+            .card-grid {
+                gap: 8px;
+                padding: 8px
+            }
+
+            .card-face {
+                border-radius: 12px
+            }
+        }
+
+        .star-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 100;
+            font-size: 22px;
+            animation: starBurst .85s cubic-bezier(.2, .8, .3, 1) forwards
+        }
+
+        @keyframes starBurst {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1) rotate(0)
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(var(--tx), var(--ty)) scale(0) rotate(540deg)
+            }
+        }
+
+        .confetti-piece {
+            position: fixed;
+            pointer-events: none;
+            z-index: 200;
+            border-radius: 2px;
+            animation: confettiFall var(--dur) linear var(--delay) forwards
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-20px) rotate(0);
+                opacity: 1
+            }
+
+            100% {
+                transform: translateY(105vh) rotate(var(--rot));
+                opacity: 0
+            }
+        }
+
+        .combo-float {
+            position: fixed;
+            pointer-events: none;
+            z-index: 110;
+            font-weight: 700;
+            font-size: 30px;
+            animation: comboUp 1.2s ease forwards;
+            text-shadow: 0 2px 12px rgba(255, 215, 0, .5)
+        }
+
+        @keyframes comboUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1)
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-70px) scale(1.4)
+            }
+        }
+
+        .victory-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(26, 35, 126, .45);
+            backdrop-filter: blur(8px);
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: vFadeIn .4s ease
+        }
+
+        @keyframes vFadeIn {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+
+        .victory-card {
+            background: #fff;
+            border-radius: 28px;
+            padding: 44px 36px;
+            text-align: center;
+            max-width: 480px;
+            width: 94%;
+            animation: vScaleIn .5s cubic-bezier(.34, 1.56, .64, 1);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, .18)
+        }
+
+        @keyframes vScaleIn {
+            from {
+                transform: scale(.5);
+                opacity: 0
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1
+            }
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, .92);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 6px 14px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: .95rem
+        }
+
+        .game-btn {
+            transition: all .25s cubic-bezier(.4, 0, .2, 1);
+            border: none;
+            outline: none;
+            cursor: pointer
+        }
+
+        .game-btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, .12)
+        }
+
+        .game-btn:active {
+            transform: translateY(0) scale(.97)
+        }
+
+        .game-btn:focus-visible {
+            outline: 3px solid var(--neon-blue);
+            outline-offset: 2px
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-120px);
+            padding: 10px 24px;
+            border-radius: 14px;
+            color: #fff;
+            font-weight: 600;
+            z-index: 300;
+            transition: transform .4s cubic-bezier(.34, 1.56, .64, 1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .15);
+            font-size: .95rem;
+            white-space: nowrap
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0)
+        }
+
+        .htp-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(26, 35, 126, .4);
+            backdrop-filter: blur(6px);
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: vFadeIn .3s ease
+        }
+
+        .htp-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 36px 32px;
+            max-width: 520px;
+            width: 92%;
+            animation: vScaleIn .4s cubic-bezier(.34, 1.56, .64, 1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .15);
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative
+        }
+
+        .htp-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 18px
+        }
+
+        .htp-num {
+            min-width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: #fff;
+            flex-shrink: 0
+        }
+
+        .htp-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #f5f5f5;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #999;
+            transition: all .2s
+        }
+
+        .htp-close:hover {
+            background: #eee;
+            color: #333;
+            transform: scale(1.1)
+        }
+
+        .student-input {
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: 14px;
+            border: 2.5px solid #E0E0E0;
+            background: #fff;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: var(--fg);
+            transition: all .25s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .04)
+        }
+
+        .student-input:focus {
+            outline: none;
+            border-color: var(--sky-blue);
+            box-shadow: 0 0 0 4px rgba(79, 195, 247, .2)
+        }
+
+        .student-input::placeholder {
+            color: #B0BEC5;
+            font-weight: 400
+        }
+
+        .student-input.turma:focus {
+            border-color: var(--pink);
+            box-shadow: 0 0 0 4px rgba(255, 128, 171, .2)
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="bg-molecules" aria-hidden="true"></div>
+
+    <!-- TELA DO MENU -->
+    <div id="menu-screen" class="min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
+        <div class="atom-spinner mb-6" aria-hidden="true">
+            <div class="atom-nucleus"></div>
+            <div class="electron-orbit">
+                <div class="electron"></div>
+            </div>
+            <div class="electron-orbit">
+                <div class="electron"></div>
+            </div>
+            <div class="electron-orbit">
+                <div class="electron"></div>
+            </div>
+        </div>
+        <h1 class="text-5xl md:text-7xl font-bold text-center mb-2 leading-tight">
+            <span style="color:#0288D1">Memória</span>
+            <span style="color:#87cff8">Geometria</span>
+            <span style="color:#D81B60">Molecular</span>
+        </h1>
+        <p class="text-lg md:text-xl mb-6 font-medium" style="color:var(--muted)">Vire as cartas e encontre os pares de
+            moléculas!</p>
+        <p class="text-lg md:text-xl mb-6 font-medium" style="color:var(--muted)">2026 Desenvolvido por Prof. Carlos
+            Ribeiro de Novaes Santos</p>
+        <div class="w-full max-w-xs flex flex-col gap-3 mb-6">
+            <div class="relative">
+                <i class="fas fa-user-graduate absolute left-4 top-1/2 -translate-y-1/2"
+                    style="color:var(--sky-blue);font-size:1.1rem"></i>
+                <input type="text" id="input-name" placeholder="Nome do Aluno" class="student-input"
+                    style="padding-left:44px">
+            </div>
+            <div class="relative">
+                <i class="fas fa-chalkboard absolute left-4 top-1/2 -translate-y-1/2"
+                    style="color:var(--pink);font-size:1.1rem"></i>
+                <input type="text" id="input-class" placeholder="Turma (ex: 2º Ano A)" class="student-input turma"
+                    style="padding-left:44px">
+            </div>
+        </div>
+
+        <button id="btn-htp"
+            class="game-btn mb-6 px-5 py-2 rounded-xl bg-white font-semibold shadow-md text-sm flex items-center gap-2"
+            style="color:var(--fg)">
+            <i class="fas fa-question-circle" style="color:var(--sky-blue)"></i> Como Jogar
+        </button>
+
+        <div class="flex flex-col sm:flex-row gap-4 items-center">
+            <button id="btn-simple" class="game-btn px-8 py-4 rounded-2xl text-white font-bold text-lg shadow-lg"
+                style="background:linear-gradient(135deg,#4FC3F7,#0288D1)">
+                <i class="fas fa-atom mr-2"></i>Fácil<span class="block text-sm font-normal opacity-80">6 pares</span>
+            </button>
+            <button id="btn-medium" class="game-btn px-8 py-4 rounded-2xl text-white font-bold text-lg shadow-lg"
+                style="background:linear-gradient(135deg,#FFD54F,#F9A825)">
+                <i class="fas fa-flask mr-2"></i>Médio<span class="block text-sm font-normal opacity-80">8 pares</span>
+            </button>
+            <button id="btn-difficult" class="game-btn px-8 py-4 rounded-2xl text-white font-bold text-lg shadow-lg"
+                style="background:linear-gradient(135deg,#FF80AB,#D81B60)">
+                <i class="fas fa-microscope mr-2"></i>Difícil<span class="block text-sm font-normal opacity-80">12
+                    pares</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL COMO JOGAR -->
+    <div id="htp-overlay" style="display:none">
+        <div class="htp-card">
+            <button class="htp-close" id="htp-close-x" aria-label="Fechar"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-bold mb-5 text-center" style="color:var(--fg)">Como Jogar</h2>
+            <div class="htp-step">
+                <div class="htp-num" style="background:linear-gradient(135deg,#4FC3F7,#0288D1)">1</div>
+                <div><strong>Observe e memorize!</strong><br><span style="color:var(--muted)">Quando o jogo começar,
+                        todas as cartas serão reveladas por alguns segundos. Tente lembrar onde cada molécula
+                        está!</span></div>
+            </div>
+            <div class="htp-step">
+                <div class="htp-num" style="background:linear-gradient(135deg,#FFD54F,#F9A825)">2</div>
+                <div><strong>Vire duas cartas</strong><br><span style="color:var(--muted)">Clique em qualquer carta
+                        virada para baixo para revelá-la. Depois, clique em uma segunda carta para tentar encontrar o
+                        par.</span></div>
+            </div>
+            <div class="htp-step">
+                <div class="htp-num" style="background:linear-gradient(135deg,#FF80AB,#D81B60)">3</div>
+                <div><strong>Encontre os pares</strong><br><span style="color:var(--muted)">Se as duas cartas mostrarem
+                        a mesma molécula, elas ficam viradas e você ganha pontos! Se não, elas voltam para baixo.</span>
+                </div>
+            </div>
+            <div class="htp-step">
+                <div class="htp-num" style="background:linear-gradient(135deg,#AED581,#66BB6A)">4</div>
+                <div><strong>Faça combos</strong><br><span style="color:var(--muted)">Acertos consecutivos multiplicam
+                        sua pontuação! 1º acerto = 100 pts, 2º = 200 pts, 3º = 300 pts... Um erro reinicia o
+                        combo.</span></div>
+            </div>
+            <div class="htp-step">
+                <div class="htp-num" style="background:linear-gradient(135deg,#FFD700,#FFA000)">5</div>
+                <div><strong>Vença o jogo</strong><br><span style="color:var(--muted)">Encontre todos os pares para
+                        vencer! Menos movimentos = mais estrelas. Tente conseguir 3 estrelas!</span></div>
+            </div>
+            <div class="mt-5 p-4 rounded-xl" style="background:#FFF8E1;border:2px solid #FFE082">
+                <div class="flex items-center gap-2 mb-1"><i class="fas fa-lightbulb"
+                        style="color:#FFA000"></i><strong>Dica</strong></div>
+                <span style="color:var(--muted)">Cada molécula tem uma geometria e cor específicas. Use a cor da faixa
+                    para identificar a geometria rapidamente!</span>
+            </div>
+            <button id="btn-htp-close" class="game-btn mt-6 w-full px-6 py-3 rounded-2xl text-white font-bold text-lg"
+                style="background:linear-gradient(135deg,var(--sky-blue),#0288D1)">Entendi!</button>
+        </div>
+    </div>
+
+    <!-- TELA DO JOGO -->
+    <div id="game-screen" style="display:none" class="min-h-screen flex flex-col relative z-10">
+        <header class="flex items-center justify-between p-3 gap-2 flex-wrap">
+            <div class="flex gap-2">
+                <button id="btn-menu"
+                    class="game-btn px-4 py-2 rounded-xl bg-white font-semibold text-gray-600 shadow-md text-sm"
+                    aria-label="Voltar ao menu">
+                    <i class="fas fa-arrow-left mr-1"></i>Menu
+                </button>
+                <button id="btn-restart"
+                    class="game-btn px-4 py-2 rounded-xl bg-white font-semibold text-gray-600 shadow-md text-sm"
+                    aria-label="Reiniciar jogo">
+                    <i class="fas fa-redo mr-1"></i>Reiniciar
+                </button>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <div class="stat-item"><i class="fas fa-clock" style="color:var(--sky-blue)"></i><span
+                        id="timer">0:00</span></div>
+                <div class="stat-item"><i class="fas fa-hand-pointer" style="color:var(--bright-yellow)"></i><span
+                        id="moves">0</span></div>
+                <div class="stat-item"><i class="fas fa-star" style="color:var(--gold)"></i><span id="score">0</span>
+                </div>
+                <div class="stat-item" id="combo-box" style="display:none"><i class="fas fa-fire"
+                        style="color:#FF6D00"></i><span id="combo-val">0</span>x</div>
+            </div>
+        </header>
+        <main class="flex-1 flex items-center justify-center">
+            <div id="card-grid" class="card-grid" role="grid" aria-label="Tabuleiro de cartas"></div>
+        </main>
+    </div>
+
+    <div id="victory-overlay" style="display:none"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script>
+        /* =============================================
+           DADOS DAS MOLÉCULAS
+        ============================================= */
+        var MOLECULES = [
+            {
+                name: "H\u2082O", bg: "#BBDEFB", geo: "Angular", regions: 4,
+                atoms: [[100, 50, 34, "#F44336", "O"], [48, 125, 24, "#607D8B", "H"], [152, 125, 24, "#607D8B", "H"]],
+                bonds: [[0, 1], [0, 2]], bondType: "single", desc: "Água"
+            },
+
+            {
+                name: "CO\u2082", bg: "#FFE0B2", geo: "Linear", regions: 2,
+                atoms: [[100, 75, 30, "#546E7A", "C"], [28, 75, 28, "#F44336", "O"], [172, 75, 28, "#F44336", "O"]],
+                bonds: [[0, 1], [0, 2]], bondType: "double", desc: "Dióxido de Carbono"
+            },
+
+            {
+                name: "CH\u2084", bg: "#FFF9C4", geo: "Tetraédrica", regions: 4,
+                atoms: [[100, 70, 30, "#546E7A", "C"], [38, 28, 22, "#607D8B", "H"], [162, 28, 22, "#607D8B", "H"], [42, 128, 22, "#607D8B", "H"], [158, 128, 22, "#607D8B", "H"]],
+                bonds: [[0, 1], [0, 2], [0, 3], [0, 4]], bondType: "single", desc: "Metano"
+            },
+
+            {
+                name: "NH\u2083", bg: "#C5CAE9", geo: "Piramidal", regions: 4,
+                atoms: [[100, 44, 34, "#1E88E5", "N"], [38, 128, 24, "#607D8B", "H"], [100, 148, 24, "#607D8B", "H"], [162, 128, 24, "#607D8B", "H"]],
+                bonds: [[0, 1], [0, 2], [0, 3]], bondType: "single", desc: "Amônia"
+            },
+
+            {
+                name: "O\u2082", bg: "#FFCDD2", geo: "Linear", regions: 2,
+                atoms: [[60, 75, 36, "#F44336", "O"], [140, 75, 36, "#F44336", "O"]],
+                bonds: [[0, 1]], bondType: "double", desc: "Oxigênio"
+            },
+
+            {
+                name: "N\u2082", bg: "#B2EBF2", geo: "Linear", regions: 2,
+                atoms: [[60, 75, 36, "#1E88E5", "N"], [140, 75, 36, "#1E88E5", "N"]],
+                bonds: [[0, 1]], bondType: "triple", desc: "Nitrogênio"
+            },
+
+            {
+                name: "HCl", bg: "#C8E6C9", geo: "Linear", regions: 2,
+                atoms: [[55, 75, 30, "#607D8B", "H"], [145, 75, 36, "#43A047", "Cl"]],
+                bonds: [[0, 1]], bondType: "single", desc: "Ácido Clorídrico"
+            },
+
+            {
+                name: "H\u2082S", bg: "#FFF176", geo: "Angular", regions: 4,
+                atoms: [[100, 44, 34, "#F9A825", "S"], [44, 128, 24, "#607D8B", "H"], [156, 128, 24, "#607D8B", "H"]],
+                bonds: [[0, 1], [0, 2]], bondType: "single", desc: "Sulfeto de Hidrogênio"
+            },
+
+            {
+                name: "BF\u2083", bg: "#F8BBD0", geo: "Trigonal Plana", regions: 3,
+                atoms: [[100, 72, 30, "#D81B60", "B"], [28, 28, 26, "#43A047", "F"], [172, 28, 26, "#43A047", "F"], [100, 138, 26, "#43A047", "F"]],
+                bonds: [[0, 1], [0, 2], [0, 3]], bondType: "single", desc: "Trifluoreto de Boro"
+            },
+
+            {
+                name: "C\u2082H\u2084", bg: "#E1BEE7", geo: "Trigonal Plana", regions: 3,
+                atoms: [[68, 70, 28, "#546E7A", "C"], [132, 70, 28, "#546E7A", "C"], [22, 28, 20, "#607D8B", "H"], [22, 118, 20, "#607D8B", "H"], [178, 28, 20, "#607D8B", "H"], [178, 118, 20, "#607D8B", "H"]],
+                bonds: [[0, 1], [0, 2], [0, 3], [1, 4], [1, 5]], bondType: "mixed", doubleBondIdx: [0], desc: "Etileno"
+            },
+
+            {
+                name: "SO\u2082", bg: "#DCEDC8", geo: "Angular", regions: 3,
+                atoms: [[100, 44, 34, "#F9A825", "S"], [34, 128, 28, "#F44336", "O"], [166, 128, 28, "#F44336", "O"]],
+                bonds: [[0, 1], [0, 2]], bondType: "double", desc: "Dióxido de Enxofre"
+            },
+
+            {
+                name: "NaCl", bg: "#B2DFDB", geo: "Linear", regions: 2,
+                atoms: [[60, 75, 36, "#8E24AA", "Na"], [140, 75, 36, "#43A047", "Cl"]],
+                bonds: [[0, 1]], bondType: "ionic", desc: "Cloreto de Sódio"
+            }
+        ];
+
+        /* =============================================
+           SVG — 200x230 com faixa de geometria colorida
+        ============================================= */
+        var svgUid = 0;
+
+        function createMoleculeSVG(mol) {
+            var w = 200, h = 230;
+            svgUid++;
+            var uid = 'm' + svgUid;
+            var s = '<svg viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">';
+
+            // Fundo
+            s += '<defs>';
+            s += '<radialGradient id="' + uid + 'bg" cx="50%" cy="35%" r="60%">';
+            s += '<stop offset="0%" stop-color="' + mol.bg + '"/>';
+            s += '<stop offset="100%" stop-color="' + darkenColor(mol.bg, .82) + '"/>';
+            s += '</radialGradient>';
+            s += '</defs>';
+            s += '<rect width="' + w + '" height="' + h + '" rx="14" fill="url(#' + uid + 'bg)"/>';
+
+            // Grade sutil
+            s += '<g opacity=".04">';
+            for (var gx = 0; gx < w; gx += 24) { s += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + h + '" stroke="#000" stroke-width=".5"/>'; }
+            for (var gy = 0; gy < h; gy += 24) { s += '<line x1="0" y1="' + gy + '" x2="' + w + '" y2="' + gy + '" stroke="#000" stroke-width=".5"/>'; }
+            s += '</g>';
+
+            // Ligações
+            mol.bonds.forEach(function (bond, bi) {
+                var a = mol.atoms[bond[0]], b = mol.atoms[bond[1]];
+                var dx = b[0] - a[0], dy = b[1] - a[1];
+                var len = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+                var nx = -dy / len, ny = dx / len;
+                var bt = mol.bondType;
+                if (bt === 'mixed') bt = (mol.doubleBondIdx && mol.doubleBondIdx.indexOf(bi) !== -1) ? 'double' : 'single';
+                var offsets;
+                if (bt === 'triple') offsets = [-6, 0, 6];
+                else if (bt === 'double') offsets = [-4, 4];
+                else if (bt === 'ionic') offsets = [0];
+                else offsets = [0];
+                offsets.forEach(function (o) {
+                    var dash = bt === 'ionic' ? ' stroke-dasharray="6 5"' : '';
+                    s += '<line x1="' + (a[0] + nx * o) + '" y1="' + (a[1] + ny * o) + '" x2="' + (b[0] + nx * o) + '" y2="' + (b[1] + ny * o) + '" stroke="#546E7A" stroke-width="6" stroke-linecap="round" opacity=".6"' + dash + '/>';
+                });
+            });
+
+            // Átomos
+            mol.atoms.forEach(function (atom) {
+                var x = atom[0], y = atom[1], r = atom[2], color = atom[3], label = atom[4];
+                s += '<circle cx="' + (x + 2) + '" cy="' + (y + 3) + '" r="' + r + '" fill="rgba(0,0,0,.1)"/>';
+                s += '<defs><radialGradient id="' + uid + 'a' + x + y + '" cx="35%" cy="28%" r="65%">';
+                s += '<stop offset="0%" stop-color="' + lightenColor(color, .45) + '"/>';
+                s += '<stop offset="55%" stop-color="' + color + '"/>';
+                s += '<stop offset="100%" stop-color="' + darkenColor(color, .65) + '"/>';
+                s += '</radialGradient></defs>';
+                s += '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="url(#' + uid + 'a' + x + y + ')"/>';
+                s += '<ellipse cx="' + (x - r * .22) + '" cy="' + (y - r * .28) + '" rx="' + (r * .32) + '" ry="' + (r * .22) + '" fill="rgba(255,255,255,.45)" transform="rotate(-20 ' + (x - r * .22) + ' ' + (y - r * .28) + ')"/>';
+                s += '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="2"/>';
+                var fs = Math.max(12, r * .65);
+                s += '<text x="' + x + '" y="' + (y + fs * .35) + '" text-anchor="middle" fill="#fff" font-size="' + fs + '" font-weight="700" font-family="Fredoka,sans-serif" stroke="rgba(0,0,0,.15)" stroke-width=".5" paint-order="stroke">' + label + '</text>';
+
+                if (r >= 28) {
+                    var eo = r * .26, ey = y - r * .12, er = Math.max(2.5, r * .08);
+                    s += '<ellipse cx="' + (x - eo) + '" cy="' + ey + '" rx="' + (er + 2) + '" ry="' + (er + 2.5) + '" fill="#fff"/>';
+                    s += '<ellipse cx="' + (x + eo) + '" cy="' + ey + '" rx="' + (er + 2) + '" ry="' + (er + 2.5) + '" fill="#fff"/>';
+                    s += '<circle cx="' + (x - eo + 1) + '" cy="' + (ey + .5) + '" r="' + er + '" fill="#37474F"/>';
+                    s += '<circle cx="' + (x + eo + 1) + '" cy="' + (ey + .5) + '" r="' + er + '" fill="#37474F"/>';
+                    s += '<circle cx="' + (x - eo - .5) + '" cy="' + (ey - 1) + '" r="' + (er * .4) + '" fill="#fff"/>';
+                    s += '<circle cx="' + (x + eo - .5) + '" cy="' + (ey - 1) + '" r="' + (er * .4) + '" fill="#fff"/>';
+                    s += '<path d="M' + (x - r * .2) + ',' + (y + r * .22) + ' Q' + x + ',' + (y + r * .44) + ' ' + (x + r * .2) + ',' + (y + r * .22) + '" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>';
+                    s += '<circle cx="' + (x - r * .44) + '" cy="' + (y + r * .12) + '" r="' + (r * .09) + '" fill="rgba(255,138,128,.35)"/>';
+                    s += '<circle cx="' + (x + r * .44) + '" cy="' + (y + r * .12) + '" r="' + (r * .09) + '" fill="rgba(255,138,128,.35)"/>';
+                }
+            });
+
+            // === FAIXA INFERIOR DESTACADA ===
+
+            // Faixa branca: Nome da molécula
+            s += '<rect x="10" y="' + (h - 82) + '" width="' + (w - 20) + '" height="32" rx="10" fill="rgba(255,255,255,.92)"/>';
+            s += '<text x="' + (w / 2) + '" y="' + (h - 59) + '" text-anchor="middle" fill="#37474F" font-size="18" font-weight="700" font-family="Fredoka,sans-serif">' + mol.name + '</text>';
+
+            // Faixa COLORIDA: Geometria molecular (DESTAQUE PRINCIPAL)
+            var geoColor = getGeoColor(mol.geo);
+            s += '<rect x="6" y="' + (h - 46) + '" width="' + (w - 12) + '" height="40" rx="12" fill="' + geoColor + '"/>';
+
+            // Efeito brilho (glossy) na faixa colorida
+            s += '<rect x="6" y="' + (h - 46) + '" width="' + (w - 12) + '" height="20" rx="12" fill="rgba(255,255,255,.2)"/>';
+
+            // Texto da geometria em BRANCO, grande e em negrito
+            s += '<text x="' + (w / 2) + '" y="' + (h - 19) + '" text-anchor="middle" fill="#fff" font-size="17" font-weight="700" font-family="Fredoka,sans-serif" stroke="rgba(0,0,0,.12)" stroke-width=".6" paint-order="stroke">' + mol.geo + ' (' + mol.regions + ' reg.)</text>';
+
+            s += '</svg>';
+            return s;
+        }
+
+        function getGeoColor(geo) {
+            if (geo === 'Linear') return '#0288D1';         // Azul escuro
+            if (geo === 'Angular') return '#D81B60';         // Rosa
+            if (geo === 'Tetraédrica') return '#2E7D32';     // Verde
+            if (geo === 'Piramidal') return '#6A1B9A';       // Roxo
+            if (geo === 'Trigonal Plana') return '#E65100';   // Laranja
+            return '#546E7A';
+        }
+
+        function lightenColor(hex, amount) {
+            var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+            r = Math.min(255, Math.round(r + (255 - r) * amount));
+            g = Math.min(255, Math.round(g + (255 - g) * amount));
+            b = Math.min(255, Math.round(b + (255 - b) * amount));
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+        function darkenColor(hex, amount) {
+            var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+            r = Math.round(r * amount); g = Math.round(g * amount); b = Math.round(b * amount);
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        var cardBackSVG = (function () {
+            var w = 200, h = 230;
+            var s = '<svg viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">';
+            s += '<defs>';
+            s += '<linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4FC3F7"/><stop offset="50%" stop-color="#29B6F6"/><stop offset="100%" stop-color="#0288D1"/></linearGradient>';
+            s += '<radialGradient id="cbgGlow" cx="50%" cy="40%" r="50%"><stop offset="0%" stop-color="rgba(255,255,255,.18)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>';
+            s += '</defs>';
+            s += '<rect width="' + w + '" height="' + h + '" rx="14" fill="url(#cbg)"/>';
+            s += '<rect width="' + w + '" height="' + h + '" rx="14" fill="url(#cbgGlow)"/>';
+            var dots = [[35, 40], [100, 28], [165, 40], [22, 95], [78, 82], [122, 82], [178, 95], [35, 145], [100, 158], [165, 145]];
+            var bondsArr = [[0, 1], [1, 2], [0, 3], [1, 4], [2, 5], [3, 4], [4, 5], [3, 7], [4, 8], [5, 9], [7, 8], [8, 9], [6, 5], [6, 9]];
+            bondsArr.forEach(function (b) { s += '<line x1="' + dots[b[0]][0] + '" y1="' + dots[b[0]][1] + '" x2="' + dots[b[1]][0] + '" y2="' + dots[b[1]][1] + '" stroke="rgba(255,255,255,.22)" stroke-width="3"/>'; });
+            dots.forEach(function (d) { s += '<circle cx="' + d[0] + '" cy="' + d[1] + '" r="9" fill="rgba(255,255,255,.2)"/>'; s += '<circle cx="' + d[0] + '" cy="' + d[1] + '" r="5" fill="rgba(255,255,255,.12)"/>'; });
+            s += '<circle cx="100" cy="108" r="30" fill="rgba(255,255,255,.16)"/>';
+            s += '<circle cx="100" cy="108" r="18" fill="rgba(255,255,255,.1)"/>';
+            s += '<text x="100" y="120" text-anchor="middle" fill="rgba(255,255,255,.55)" font-size="34" font-weight="700" font-family="Fredoka,sans-serif">?</text>';
+            s += '<rect x="6" y="6" width="' + (w - 12) + '" height="' + (h - 12) + '" rx="10" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="2.5" stroke-dasharray="8 5"/>';
+            s += '</svg>';
+            return s;
+        })();
+
+        /* =============================================
+           ÁUDIO
+        ============================================= */
+        var audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+        function playTone(freq, dur, type, vol, ramp) {
+            type = type || 'sine'; vol = vol || .12;
+            try {
+                initAudio();
+                var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.type = type;
+                o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                if (ramp) o.frequency.exponentialRampToValueAtTime(Math.max(20, ramp), audioCtx.currentTime + dur);
+                g.gain.setValueAtTime(vol, audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + dur);
+                o.start(audioCtx.currentTime);
+                o.stop(audioCtx.currentTime + dur);
+            } catch (e) { }
+        }
+        function playFlipSound() { playTone(1100, .08, 'sine', .1, 500); }
+        function playMatchSound() { [523, 659, 784].forEach(function (f, i) { setTimeout(function () { playTone(f, .28, 'sine', .12); }, i * 110); }); }
+        function playMismatchSound() { playTone(280, .25, 'triangle', .08, 180); }
+        function playVictorySound() { [523, 587, 659, 784, 880, 784, 880, 1047].forEach(function (f, i) { setTimeout(function () { playTone(f, .25, 'sine', .1); }, i * 130); }); }
+
+        /* =============================================
+           PARTÍCULAS
+        ============================================= */
+        function createStarBurst(cx, cy) {
+            var emojis = ['\u2B50', '\u2728', '\uD83C\uDF1F', '\uD83D\uDCAB'];
+            for (var i = 0; i < 16; i++) {
+                var el = document.createElement('div');
+                el.className = 'star-particle';
+                el.textContent = emojis[i % emojis.length];
+                el.style.left = cx + 'px'; el.style.top = cy + 'px';
+                var angle = (Math.PI * 2 / 16) * i + (Math.random() - .5) * .4;
+                var dist = 60 + Math.random() * 60;
+                el.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+                el.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+                document.body.appendChild(el);
+                setTimeout(function (e) { return function () { e.remove(); }; }(el), 900);
+            }
+        }
+        function createConfetti() {
+            var colors = ['#4FC3F7', '#FFD54F', '#FF80AB', '#AED581', '#FF4081', '#00E5FF', '#FFD700', '#EF5350', '#8E24AA', '#43A047'];
+            for (var i = 0; i < 70; i++) {
+                var el = document.createElement('div');
+                el.className = 'confetti-piece';
+                el.style.left = Math.random() * 100 + 'vw';
+                el.style.width = (6 + Math.random() * 10) + 'px';
+                el.style.height = (6 + Math.random() * 10) + 'px';
+                el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                el.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+                var dur = 2.5 + Math.random() * 2;
+                el.style.setProperty('--dur', dur + 's');
+                el.style.setProperty('--delay', Math.random() * 1.2 + 's');
+                el.style.setProperty('--rot', (400 + Math.random() * 400) + 'deg');
+                document.body.appendChild(el);
+                setTimeout(function (e, d) { return function () { e.remove(); }; }(el, dur), (dur + 1.5) * 1000);
+            }
+        }
+        function showComboText(x, y, combo) {
+            var el = document.createElement('div');
+            el.className = 'combo-float';
+            el.style.left = x + 'px'; el.style.top = y + 'px';
+            el.style.color = combo >= 3 ? '#FF6D00' : '#FFD700';
+            el.textContent = combo + 'x Combo!';
+            document.body.appendChild(el);
+            setTimeout(function () { el.remove(); }, 1300);
+        }
+
+        /* =============================================
+           TOAST
+        ============================================= */
+        var toastTimer = null;
+        function showToast(msg, color) {
+            color = color || '#0288D1';
+            var t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.background = color;
+            t.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+        }
+
+        /* =============================================
+           LÓGICA DO JOGO
+        ============================================= */
+        var DIFFICULTY = {
+            simple: { pairs: 6, cols: 4, rows: 3, label: 'Fácil' },
+            medium: { pairs: 8, cols: 4, rows: 4, label: 'Médio' },
+            difficult: { pairs: 12, cols: 6, rows: 4, label: 'Difícil' }
+        };
+
+        var state = {
+            difficulty: 'simple', cards: [], flipped: [], matchedCount: 0, totalPairs: 0,
+            moves: 0, score: 0, combo: 0, seconds: 0, timerRef: null, locked: false, active: false,
+            studentName: '', studentClass: ''
+        };
+
+        function shuffle(arr) {
+            for (var i = arr.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+            }
+            return arr;
+        }
+
+        function updateStats() {
+            document.getElementById('moves').textContent = state.moves;
+            document.getElementById('score').textContent = state.score;
+            var comboBox = document.getElementById('combo-box');
+            if (state.combo >= 2) { comboBox.style.display = 'flex'; document.getElementById('combo-val').textContent = state.combo; }
+            else { comboBox.style.display = 'none'; }
+        }
+
+        function updateTimer() {
+            var m = Math.floor(state.seconds / 60);
+            var s = state.seconds % 60;
+            document.getElementById('timer').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        }
+
+        function showScreen(id) {
+            ['menu-screen', 'game-screen'].forEach(function (sid) { document.getElementById(sid).style.display = 'none'; });
+            document.getElementById(id).style.display = '';
+        }
+
+        function startGame(diff) {
+            initAudio();
+            var nameInput = document.getElementById('input-name');
+            var classInput = document.getElementById('input-class');
+            state.studentName = nameInput.value.trim() || 'Aluno';
+            state.studentClass = classInput.value.trim() || '-';
+
+            state.difficulty = diff;
+            state.totalPairs = DIFFICULTY[diff].pairs;
+            state.matchedCount = 0;
+            state.moves = 0;
+            state.score = 0;
+            state.combo = 0;
+            state.seconds = 0;
+            state.flipped = [];
+            state.locked = false;
+            state.active = true;
+
+            var selected = shuffle(MOLECULES.slice()).slice(0, state.totalPairs);
+            var deck = [];
+            selected.forEach(function (mol) {
+                deck.push({ name: mol.name, bg: mol.bg, atoms: mol.atoms, bonds: mol.bonds, bondType: mol.bondType, doubleBondIdx: mol.doubleBondIdx, desc: mol.desc, geo: mol.geo, regions: mol.regions, uid: Math.random() });
+                deck.push({ name: mol.name, bg: mol.bg, atoms: mol.atoms, bonds: mol.bonds, bondType: mol.bondType, doubleBondIdx: mol.doubleBondIdx, desc: mol.desc, geo: mol.geo, regions: mol.regions, uid: Math.random() });
+            });
+            shuffle(deck);
+            state.cards = deck;
+
+            document.getElementById('victory-overlay').style.display = 'none';
+            document.getElementById('victory-overlay').innerHTML = '';
+            showScreen('game-screen');
+
+            updateStats();
+            updateTimer();
+
+            var grid = document.getElementById('card-grid');
+            grid.className = 'card-grid ' + diff;
+            grid.innerHTML = '';
+
+            deck.forEach(function (mol, idx) {
+                var card = document.createElement('div');
+                card.className = 'card-container';
+                card.setAttribute('role', 'gridcell');
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('aria-label', 'Carta ' + (idx + 1) + ', virada para baixo');
+                card.dataset.idx = idx;
+
+                var inner = document.createElement('div');
+                inner.className = 'card-inner';
+
+                var back = document.createElement('div');
+                back.className = 'card-face card-back-face';
+                back.innerHTML = cardBackSVG;
+
+                var front = document.createElement('div');
+                front.className = 'card-face card-front-face';
+                front.innerHTML = createMoleculeSVG(mol);
+
+                inner.appendChild(back);
+                inner.appendChild(front);
+                card.appendChild(inner);
+                grid.appendChild(card);
+
+                (function (index) {
+                    card.addEventListener('click', function () { flipCard(index); });
+                    card.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipCard(index); }
+                    });
+                })(idx);
+            });
+
+            clearInterval(state.timerRef);
+            state.timerRef = setInterval(function () { if (state.active) { state.seconds++; updateTimer(); } }, 1000);
+
+            state.locked = true;
+            var allCards = grid.querySelectorAll('.card-container');
+            allCards.forEach(function (c) { c.classList.add('flipped'); });
+            setTimeout(function () { allCards.forEach(function (c) { c.classList.remove('flipped'); }); state.locked = false; }, 2000);
+        }
+
+        function flipCard(idx) {
+            if (state.locked) return;
+            var el = document.querySelector('.card-container[data-idx="' + idx + '"]');
+            if (!el || el.classList.contains('flipped') || el.classList.contains('matched')) return;
+            if (state.flipped.length >= 2) return;
+
+            el.classList.add('flipped');
+            el.setAttribute('aria-label', 'Carta mostrando ' + state.cards[idx].name);
+            playFlipSound();
+            state.flipped.push(idx);
+
+            if (state.flipped.length === 2) { state.moves++; state.locked = true; updateStats(); checkMatch(); }
+        }
+
+        function checkMatch() {
+            var i1 = state.flipped[0], i2 = state.flipped[1];
+            var c1 = state.cards[i1], c2 = state.cards[i2];
+            var el1 = document.querySelector('.card-container[data-idx="' + i1 + '"]');
+            var el2 = document.querySelector('.card-container[data-idx="' + i2 + '"]');
+
+            if (c1.name === c2.name) {
+                state.combo++;
+                var pts = 100 * state.combo;
+                state.score += pts;
+                state.matchedCount++;
+
+                setTimeout(function () {
+                    el1.classList.add('matched'); el2.classList.add('matched');
+                    playMatchSound();
+                    var r1 = el1.getBoundingClientRect(), r2 = el2.getBoundingClientRect();
+                    var cx = (r1.left + r1.right + r2.left + r2.right) / 4;
+                    var cy = (r1.top + r1.bottom + r2.top + r2.bottom) / 4;
+                    createStarBurst(cx, cy);
+                    if (state.combo >= 2) showComboText(cx, cy - 30, state.combo);
+                    showToast(c1.name + ' — ' + c1.desc + ' (' + c1.geo + ') +' + pts + ' pts', getGeoColor(c1.geo));
+                    updateStats();
+                    state.flipped = []; state.locked = false;
+                    if (state.matchedCount === state.totalPairs) setTimeout(showVictory, 600);
+                }, 400);
+            } else {
+                state.combo = 0; updateStats();
+                setTimeout(function () {
+                    el1.classList.add('mismatch'); el2.classList.add('mismatch');
+                    playMismatchSound();
+                    setTimeout(function () {
+                        el1.classList.remove('flipped', 'mismatch'); el2.classList.remove('flipped', 'mismatch');
+                        el1.setAttribute('aria-label', 'Carta, virada para baixo'); el2.setAttribute('aria-label', 'Carta, virada para baixo');
+                        state.flipped = []; state.locked = false;
+                    }, 550);
+                }, 600);
+            }
+        }
+
+        function showVictory() {
+            state.active = false;
+            clearInterval(state.timerRef);
+            playVictorySound();
+            createConfetti();
+            setTimeout(createConfetti, 800);
+
+            var m = Math.floor(state.seconds / 60);
+            var s = state.seconds % 60;
+            var timeStr = m + ':' + (s < 10 ? '0' : '') + s;
+
+            var ratio = state.moves / state.totalPairs;
+            var stars = ratio <= 1.5 ? 3 : ratio <= 2.2 ? 2 : 1;
+            var starsHTML = '';
+            for (var i = 0; i < 3; i++) {
+                starsHTML += '<i class="fas fa-star text-4xl ' + (i < stars ? '' : 'opacity-20') + '" style="color:' + (i < stars ? 'var(--gold)' : '#ccc') + '"></i> ';
+            }
+
+            var studentBadge =
+                '<div style="display:inline-flex;align-items:center;gap:12px;background:linear-gradient(135deg,#E3F2FD,#F3E5F5);padding:10px 22px;border-radius:16px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)">' +
+                '<div style="display:flex;align-items:center;gap:6px">' +
+                '<i class="fas fa-user-graduate" style="color:#0288D1;font-size:1.1rem"></i>' +
+                '<span style="font-weight:700;font-size:1.1rem;color:var(--fg)">' + state.studentName + '</span>' +
+                '</div>' +
+                '<div style="width:2px;height:22px;background:rgba(0,0,0,.1);border-radius:1px"></div>' +
+                '<div style="display:flex;align-items:center;gap:6px">' +
+                '<i class="fas fa-chalkboard" style="color:#D81B60;font-size:1.1rem"></i>' +
+                '<span style="font-weight:600;font-size:1rem;color:var(--muted)">' + state.studentClass + '</span>' +
+                '</div>' +
+                '</div>';
+
+            var overlay = document.getElementById('victory-overlay');
+            overlay.style.display = '';
+            overlay.className = 'victory-overlay';
+            overlay.innerHTML =
+                '<div class="victory-card">' +
+                studentBadge +
+                '<div class="mb-4">' + starsHTML + '</div>' +
+                '<h2 class="text-3xl font-bold mb-2" style="color:var(--fg)">Parabéns!</h2>' +
+                '<p class="text-lg mb-6" style="color:var(--muted)">Você encontrou todos os pares de moléculas!</p>' +
+                '<div class="flex justify-center gap-6 mb-8">' +
+                '<div class="text-center"><div class="text-2xl font-bold" style="color:var(--sky-blue)">' + timeStr + '</div><div class="text-sm" style="color:var(--muted)">Tempo</div></div>' +
+                '<div class="text-center"><div class="text-2xl font-bold" style="color:var(--bright-yellow)">' + state.moves + '</div><div class="text-sm" style="color:var(--muted)">Jogadas</div></div>' +
+                '<div class="text-center"><div class="text-2xl font-bold" style="color:var(--gold)">' + state.score + '</div><div class="text-sm" style="color:var(--muted)">Pontos</div></div>' +
+                '</div>' +
+                '<div class="flex flex-col sm:flex-row gap-3 justify-center">' +
+                '<button id="btn-play-again" class="game-btn px-6 py-3 rounded-2xl text-white font-bold text-lg" style="background:linear-gradient(135deg,var(--light-green),#66BB6A)">Jogar Novamente</button>' +
+                '<button id="btn-back-menu" class="game-btn px-6 py-3 rounded-2xl text-white font-bold text-lg" style="background:linear-gradient(135deg,var(--sky-blue),#0288D1)">Trocar Dificuldade</button>' +
+                '</div>' +
+                '</div>';
+
+            document.getElementById('btn-play-again').addEventListener('click', function () { startGame(state.difficulty); });
+            document.getElementById('btn-back-menu').addEventListener('click', function () { backToMenu(); });
+        }
+
+        function backToMenu() {
+            clearInterval(state.timerRef);
+            state.active = false;
+            document.getElementById('victory-overlay').style.display = 'none';
+            document.getElementById('victory-overlay').innerHTML = '';
+            showScreen('menu-screen');
+        }
+
+        function restartGame() { startGame(state.difficulty); }
+
+        /* =============================================
+           MOLÉCULAS FLUTUANTES
+        ============================================= */
+        function createBgMolecules() {
+            var container = document.getElementById('bg-molecules');
+            var molSVGs = MOLECULES.slice(0, 6).map(function (m) { return createMoleculeSVG(m); });
+            for (var i = 0; i < 8; i++) {
+                var el = document.createElement('div');
+                el.className = 'bg-mol';
+                el.innerHTML = molSVGs[i % molSVGs.length];
+                var size = 70 + Math.random() * 70;
+                el.style.width = size + 'px';
+                el.style.left = Math.random() * 100 + 'vw';
+                var dur = 20 + Math.random() * 22;
+                var delay = Math.random() * dur;
+                var anim = i % 2 === 0 ? 'floatA' : 'floatB';
+                el.style.animation = anim + ' ' + dur + 's ' + delay + 's linear infinite';
+                container.appendChild(el);
+            }
+        }
+
+        /* =============================================
+           BOTÕES
+        ============================================= */
+        document.getElementById('btn-simple').addEventListener('click', function () { startGame('simple'); });
+        document.getElementById('btn-medium').addEventListener('click', function () { startGame('medium'); });
+        document.getElementById('btn-difficult').addEventListener('click', function () { startGame('difficult'); });
+        document.getElementById('btn-menu').addEventListener('click', backToMenu);
+        document.getElementById('btn-restart').addEventListener('click', restartGame);
+
+        document.getElementById('btn-htp').addEventListener('click', function () { document.getElementById('htp-overlay').style.display = 'flex'; });
+        document.getElementById('btn-htp-close').addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); document.getElementById('htp-overlay').style.display = 'none'; });
+        document.getElementById('htp-close-x').addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); document.getElementById('htp-overlay').style.display = 'none'; });
+        document.getElementById('htp-overlay').addEventListener('click', function (e) { if (e.target === this) this.style.display = 'none'; });
+        document.querySelector('.htp-card').addEventListener('click', function (e) { e.stopPropagation(); });
+
+        createBgMolecules();
+    </script>
+</body>
+
+</html>
